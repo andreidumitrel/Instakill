@@ -3,7 +3,9 @@ package com.instakill.interaction.application;
 import com.instakill.common.clock.Clock;
 import com.instakill.common.id.IdGenerator;
 import com.instakill.interaction.domain.CommentRepository;
+import com.instakill.interaction.domain.DomainEventPublisher;
 import com.instakill.interaction.domain.Like;
+import com.instakill.interaction.domain.LikeCreatedEvent;
 import com.instakill.interaction.domain.LikeRepository;
 import com.instakill.post.domain.Post;
 import com.instakill.post.domain.PostRepository;
@@ -25,6 +27,7 @@ class InteractionServiceTest {
     private final PostRepository postRepository = mock(PostRepository.class);
     private final IdGenerator idGenerator = mock(IdGenerator.class);
     private final Clock clock = mock(Clock.class);
+    private final DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
 
     private InteractionService service;
     private final UUID postId = UUID.randomUUID();
@@ -33,7 +36,7 @@ class InteractionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new InteractionService(commentRepository, likeRepository, postRepository, idGenerator, clock);
+        service = new InteractionService(commentRepository, likeRepository, postRepository, idGenerator, clock, eventPublisher);
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
         when(clock.now()).thenReturn(Instant.parse("2024-01-01T00:00:00Z"));
     }
@@ -53,6 +56,8 @@ class InteractionServiceTest {
         verify(postRepository).save(postCaptor.capture());
         assertThat(postCaptor.getValue().likeCount()).isEqualTo(1);
         assertThat(postCaptor.getValue().updatedAt()).isEqualTo(clock.now());
+        
+        verify(eventPublisher).publish(new LikeCreatedEvent(postId, userId, clock.now()));
     }
 
     @Test
@@ -69,6 +74,7 @@ class InteractionServiceTest {
         ArgumentCaptor<Post> postCaptor = ArgumentCaptor.forClass(Post.class);
         verify(postRepository).save(postCaptor.capture());
         assertThat(postCaptor.getValue().likeCount()).isZero();
-
+        
+        verifyNoInteractions(eventPublisher);
     }
 }

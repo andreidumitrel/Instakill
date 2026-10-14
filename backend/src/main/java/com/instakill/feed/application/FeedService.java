@@ -1,20 +1,26 @@
 package com.instakill.feed.application;
 
+import com.instakill.feed.domain.FeedRankingStrategy;
 import com.instakill.feed.domain.FeedSort;
 import com.instakill.post.domain.Post;
 import com.instakill.post.domain.PostRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class FeedService {
 
     private final PostRepository posts;
+    private final Map<FeedSort, FeedRankingStrategy> strategies;
 
-    public FeedService(PostRepository posts) {
+    public FeedService(PostRepository posts, List<FeedRankingStrategy> strategyList) {
         this.posts = posts;
+        this.strategies = strategyList.stream()
+                .collect(Collectors.toMap(FeedRankingStrategy::sort, Function.identity()));
     }
 
     public List<Post> listFeed(FeedSort sort, int page, int size) {
@@ -22,31 +28,11 @@ public class FeedService {
             sort = FeedSort.NEW;
         }
         
-        return switch (sort) {
-            case NEW -> fetchNewestFeed(page, size);
-            case TRENDING -> fetchTrendingFeed(page, size);
-        };
-    }
-    
-    private List<Post> fetchNewestFeed(int page, int size) {
-        return posts.findLatest(page, size);
-    }
-    
-    private List<Post> fetchTrendingFeed(int page, int size) {
-        // Fetch more posts than needed to allow for proper trending sorting
-        int fetchSize = Math.max(size * 2, Math.max(size, 10));
-        List<Post> candidates = posts.findLatest(0, (page + 1) * fetchSize);
+        FeedRankingStrategy strategy = strategies.get(sort);
+        if (strategy == null) {
+            throw new IllegalArgumentException("Unsupported feed sort: " + sort);
+        }
         
-        // Sort by likes (descending), then comments (descending), then recency (descending)
-        Comparator<Post> comparator = Comparator
-                .comparingLong(Post::likeCount).reversed()
-                .thenComparing(Comparator.comparingLong(Post::commentCount).reversed())
-                .thenComparing(Comparator.comparing(Post::createdAt).reversed());
-                
-        return candidates.stream()
-                .sorted(comparator)
-                .skip((long) page * size)
-                .limit(size)
-                .toList();
+        return strategy.fetch(posts, page, size);
     }
 }
