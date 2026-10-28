@@ -24,5 +24,5 @@ if (!(Test-Path $unzipDir)) {
 }
 
 Set-Location (Join-Path $root 'backend')
-& "$unzipDir/bin/gradle" wrapper --gradle-version $gradleVersion
+& "$unzipDir/bin/gradle.bat" wrapper --gradle-version $gradleVersion
 Write-Host 'Gradle wrapper generated. You can now run ./gradlew tasks.'

@@ -8,31 +8,63 @@ Instakill is a Spring Boot 3 / Vue 3 starter for an Instagram-style social feed.
 - `frontend/` – Vue 3 SPA that consumes the REST API.
 - `scripts/` – helper tooling including Gradle bootstrap.
 
-## First run
+## Quick Start
 
-Make sure you have Java 23 installed. 
+### Prerequisites
+- **Java**: Java 21+ (e.g. OpenJDK 21 LTS).
+- **Node.js** *(Optional)*: Required only if running the Vue 3 SPA frontend (download from [nodejs.org](https://nodejs.org/)).
 
-```bash
-# From the project root
-./scripts/bootstrap-gradle.sh
-./backend/gradlew bootRun
-```
+---
 
-On Windows PowerShell:
+### 1. Running the Backend (Spring Boot)
 
+The backend provides both the REST API and a built-in Thymeleaf web interface (no Node.js required).
+
+#### First time setup (Windows PowerShell):
+If the Gradle wrapper is not yet generated, run the bootstrap script:
 ```powershell
 ./scripts/bootstrap-gradle.ps1
-./backend/gradlew.bat bootRun
 ```
 
-The bootstrap downloads Gradle 8.9 and generates a local wrapper (ignored by git). Subsequent builds can use the wrapper directly.
+#### Starting the server:
+Make sure `JAVA_HOME` points to your JDK 21 installation, then run `bootRun`:
+```powershell
+# Set JAVA_HOME if not already in system environment
+$env:JAVA_HOME = "$env:USERPROFILE\.jdks\openjdk-21.0.2"
 
-## Useful endpoints
+cd backend
+.\gradlew.bat bootRun
+```
 
-- Web feed: http://localhost:8080/feed
-- Login page: http://localhost:8080/auth/login
-- REST OpenAPI UI: http://localhost:8080/api/swagger
-- Health: http://localhost:8080/actuator/health
+On Linux / macOS:
+```bash
+./scripts/bootstrap-gradle.sh
+cd backend
+./gradlew bootRun
+```
+
+#### Useful endpoints:
+- **Web feed**: http://localhost:8080/feed
+- **Login page**: http://localhost:8080/auth/login
+- **REST OpenAPI UI**: http://localhost:8080/api/swagger
+- **Health check**: http://localhost:8080/actuator/health
+
+---
+
+### 2. Running the Frontend (Vue 3 SPA)
+
+The Vue SPA is located in `frontend/` and connects to the backend at `http://localhost:8080`.
+
+1. Ensure **Node.js LTS** and **npm** are installed.
+2. In a separate terminal:
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+3. Open http://localhost:5173/ in your browser.
+
+---
 
 ## Authentication
 
@@ -45,25 +77,15 @@ Seed accounts (development profile):
 | alice    | alice@example.com | password |
 | bob      | bob@example.com   | password |
 
+---
+
 ## Running tests
 
-```bash
+```powershell
 cd backend
-./gradlew test
+.\gradlew.bat test
 ```
+(On Linux / macOS: `./gradlew test`)
 
 The tests cover feed ranking, like toggling, MVC flows, and an end-to-end REST happy-path.
 
-## Frontend
-
-The Vue application lives in `frontend/`. Install dependencies and start the dev server with:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-With default settings, you will be able to access the frontend on `http://localhost:5173/` 
-It assumes the backend is running at `http://localhost:8080`.
-Check `vite.config.js` for these settings.
