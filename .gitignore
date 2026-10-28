@@ -21,3 +21,7 @@ gradle/wrapper/
 .temp/
 bin/
 backend/bin/
+
+# Uploaded media (runtime)
+/media/
+/backend/media/

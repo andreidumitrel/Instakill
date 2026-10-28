@@ -1,3 +1,6 @@
+media:
+  base-path: build/test-media
+
 spring:
   datasource:
     url: jdbc:sqlite:file:memdb1?mode=memory&cache=shared

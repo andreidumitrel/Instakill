@@ -22,7 +22,12 @@
                 </div>
             </div>
             <p th:text="${post.content()}"></p>
-            <img th:if="${post.imageUrl()}" th:src="${post.imageUrl()}" alt="Post image"/>
+            <th:block th:if="${post.imageUrl()}">
+                <video th:if="${#strings.endsWith(#strings.toLowerCase(post.imageUrl()), '.mp4') or #strings.endsWith(#strings.toLowerCase(post.imageUrl()), '.mov') or #strings.endsWith(#strings.toLowerCase(post.imageUrl()), '.webm')}"
+                       th:src="${post.imageUrl()}" controls style="max-width: 100%; border-radius: 8px; display: block; margin: 0.75rem 0;"></video>
+                <img th:unless="${#strings.endsWith(#strings.toLowerCase(post.imageUrl()), '.mp4') or #strings.endsWith(#strings.toLowerCase(post.imageUrl()), '.mov') or #strings.endsWith(#strings.toLowerCase(post.imageUrl()), '.webm')}"
+                     th:src="${post.imageUrl()}" alt="Post image"/>
+            </th:block>
             <div class="post-actions">
                 <form th:action="@{'/posts/' + ${post.id()} + '/likes'}" method="post">
                     <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>

@@ -1,4 +1,11 @@
+media:
+  base-path: media
+
 spring:
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 200MB
   datasource:
     url: jdbc:sqlite:./instakill.db
     driver-class-name: org.sqlite.JDBC

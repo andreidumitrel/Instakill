@@ -60,6 +60,14 @@ public class RestExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ProblemDetail handleResponseStatus(org.springframework.web.server.ResponseStatusException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(ex.getStatusCode(), ex.getReason());
+        problem.setTitle(HttpStatus.valueOf(ex.getStatusCode().value()).getReasonPhrase());
+        problem.setType(URI.create("https://instakill.dev/errors/" + ex.getStatusCode().value()));
+        return problem;
+    }
+
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleGeneric(Exception ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());

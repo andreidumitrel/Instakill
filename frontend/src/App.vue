@@ -27,9 +27,26 @@
       <section v-else class="feed">
         <form @submit.prevent="createNewPost" class="card form composer">
           <textarea v-model="composer.content" rows="3" placeholder="Share something..." required></textarea>
-          <input v-model="composer.imageUrl" placeholder="Image URL (optional)">
+          
+          <div class="media-upload-row">
+            <label class="file-btn">
+              <span>Choose Image or Video</span>
+              <input type="file" @change="onFileSelected" accept="image/*,video/*" :disabled="uploading" style="display:none">
+            </label>
+            <span v-if="uploading" class="uploading-text">Uploading...</span>
+            <span v-if="uploadedFilename" class="uploaded-badge">✓ {{ uploadedFilename }}</span>
+            <span v-if="uploadError" class="error">{{ uploadError }}</span>
+          </div>
+
+          <input v-model="composer.imageUrl" placeholder="Media URL (or paste external link)">
+
+          <div v-if="composer.imageUrl" class="composer-media-preview">
+            <video v-if="isVideo(composer.imageUrl)" :src="composer.imageUrl" controls class="preview-media"></video>
+            <img v-else :src="composer.imageUrl" alt="Preview" class="preview-media">
+          </div>
+
           <div class="actions">
-            <button type="submit">Post</button>
+            <button type="submit" :disabled="uploading">Post</button>
           </div>
         </form>
 
@@ -54,7 +71,10 @@
             </div>
           </header>
           <p>{{ post.content }}</p>
-          <img v-if="post.imageUrl" :src="post.imageUrl" alt="post image">
+          <div v-if="post.imageUrl" class="post-media-box">
+            <video v-if="isVideo(post.imageUrl)" :src="post.imageUrl" controls class="post-media"></video>
+            <img v-else :src="post.imageUrl" alt="post image" class="post-media">
+          </div>
           
           <!-- Comments Section -->
           <section class="comments">
@@ -92,7 +112,7 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
-import { createPost, fetchMe, listFeed, login, register as registerUser, toggleLike, listComments, addComment } from './api'
+import { createPost, fetchMe, listFeed, login, register as registerUser, toggleLike, listComments, addComment, uploadMedia } from './api'
 
 const user = ref(null)
 const posts = ref([])
@@ -101,6 +121,33 @@ const authMode = ref('login')
 const error = ref('')
 const authForm = reactive({ username: '', email: '', password: '', usernameOrEmail: '' })
 const composer = reactive({ content: '', imageUrl: '' })
+const uploading = ref(false)
+const uploadError = ref('')
+const uploadedFilename = ref('')
+
+function isVideo(url) {
+  if (!url) return false
+  const clean = url.split('?')[0].toLowerCase()
+  return clean.endsWith('.mp4') || clean.endsWith('.mov') || clean.endsWith('.webm') || clean.endsWith('.avi') || clean.endsWith('.mkv')
+}
+
+async function onFileSelected(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+  uploading.value = true
+  uploadError.value = ''
+  uploadedFilename.value = ''
+  try {
+    const res = await uploadMedia(file)
+    composer.imageUrl = res.mediaUrl
+    uploadedFilename.value = file.name
+  } catch (e) {
+    uploadError.value = e.response?.data?.detail || e.response?.data?.message || 'Failed to upload media'
+  } finally {
+    uploading.value = false
+    event.target.value = ''
+  }
+}
 
 // Comments state
 const comments = reactive({})
@@ -185,6 +232,7 @@ async function createNewPost() {
   await createPost({ content: composer.content, imageUrl: composer.imageUrl || null })
   composer.content = ''
   composer.imageUrl = ''
+  uploadedFilename.value = ''
   await loadFeed()
 }
 
@@ -332,6 +380,64 @@ async function logout() {
   width: 100%;
   border-radius: 12px;
 }
+
+.media-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+  flex-wrap: wrap;
+}
+
+.file-btn {
+  display: inline-block;
+  background: #e5e7eb;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.file-btn:hover {
+  background: #d1d5db;
+}
+
+.uploading-text {
+  font-size: 0.85rem;
+  color: #2563eb;
+}
+
+.uploaded-badge {
+  font-size: 0.85rem;
+  color: #10b981;
+  font-weight: 500;
+}
+
+.composer-media-preview {
+  margin: 0.5rem 0;
+  max-height: 200px;
+}
+
+.preview-media {
+  max-width: 100%;
+  max-height: 180px;
+  border-radius: 8px;
+  display: block;
+}
+
+.post-media-box {
+  margin-top: 0.75rem;
+}
+
+.post-media {
+  width: 100%;
+  max-height: 480px;
+  border-radius: 12px;
+  display: block;
+}
+
 
 .post footer {
   margin-top: 1rem;
