@@ -35,3 +35,9 @@ instakill:
 logging:
   level:
     org.hibernate.SQL: warn
+
+notification:
+  enabled: true
+  ntfy:
+    base-url: https://ntfy.sh
+    topic: instakill-demo

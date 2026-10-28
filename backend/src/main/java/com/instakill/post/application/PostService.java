@@ -7,7 +7,10 @@ import com.instakill.common.id.IdGenerator;
 import com.instakill.feed.application.FeedService;
 import com.instakill.feed.domain.FeedSort;
 import com.instakill.post.domain.Post;
+import com.instakill.post.domain.PostCreatedEvent;
 import com.instakill.post.domain.PostRepository;
+import com.instakill.user.domain.UserRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,12 +26,17 @@ public class PostService {
     private final IdGenerator idGenerator;
     private final Clock clock;
     private final FeedService feedService;
+    private final UserRepository users;
+    private final ApplicationEventPublisher events;
 
-    public PostService(PostRepository posts, IdGenerator idGenerator, Clock clock, FeedService feedService) {
+    public PostService(PostRepository posts, IdGenerator idGenerator, Clock clock, FeedService feedService,
+                       UserRepository users, ApplicationEventPublisher events) {
         this.posts = posts;
         this.idGenerator = idGenerator;
         this.clock = clock;
         this.feedService = feedService;
+        this.users = users;
+        this.events = events;
     }
 
     @Transactional
@@ -44,7 +52,10 @@ public class PostService {
                 0L,
                 0L
         );
-        return posts.save(post);
+        Post saved = posts.save(post);
+        String username = users.findById(authorId).map(u -> u.username()).orElse("unknown");
+        events.publishEvent(new PostCreatedEvent(saved.id(), authorId, username, saved.createdAt()));
+        return saved;
     }
 
     public Post getPost(UUID id) {

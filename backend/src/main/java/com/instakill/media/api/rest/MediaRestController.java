@@ -2,6 +2,8 @@ package com.instakill.media.api.rest;
 
 import com.instakill.common.error.BadRequestException;
 import com.instakill.infrastructure.security.JwtUserPrincipal;
+import com.instakill.media.application.ImageProcessor;
+import com.instakill.media.application.InvalidImageException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -29,11 +31,13 @@ import java.util.UUID;
 public class MediaRestController {
 
     private final Path mediaDir;
+    private final ImageProcessor imageProcessor;
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
             "jpg", "jpeg", "png", "gif", "webp", "mp4", "mov", "webm", "avi", "mkv"
     );
 
-    public MediaRestController(@Value("${media.base-path:media}") String basePath) {
+    public MediaRestController(@Value("${media.base-path:media}") String basePath, ImageProcessor imageProcessor) {
+        this.imageProcessor = imageProcessor;
         this.mediaDir = Paths.get(basePath).toAbsolutePath().normalize();
         ensureDirectoryExists();
     }
@@ -73,8 +77,17 @@ public class MediaRestController {
         String newFilename = UUID.randomUUID() + "." + extension;
         Path target = this.mediaDir.resolve(newFilename).normalize();
 
-        try (InputStream in = file.getInputStream()) {
-            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+        try {
+            if (imageProcessor.supports(extension)) {
+                byte[] processed = imageProcessor.process(file.getBytes(), extension);
+                Files.write(target, processed);
+            } else {
+                try (InputStream in = file.getInputStream()) {
+                    Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
+        } catch (InvalidImageException e) {
+            throw new BadRequestException(e.getMessage());
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to store media file", e);
         }

@@ -101,5 +101,32 @@ class MediaRestControllerTest {
                         .cookie(authCookie))
                 .andExpect(status().isBadRequest());
     }
-}
 
+    @Test
+    void processesUploadedImage() throws Exception {
+        Cookie authCookie = obtainAuthCookie("mediauser4");
+        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(1000, 500, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(img, "png", out);
+        MockMultipartFile file = new MockMultipartFile("file", "big.png", "image/png", out.toByteArray());
+
+        MvcResult result = mockMvc.perform(multipart("/api/media").file(file).cookie(authCookie))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String mediaUrl = objectMapper.readTree(result.getResponse().getContentAsString()).get("mediaUrl").asText();
+
+        byte[] stored = mockMvc.perform(get(mediaUrl)).andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
+        java.awt.image.BufferedImage processed = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(stored));
+        assertThat(processed.getWidth()).isEqualTo(300);
+        assertThat(processed.getHeight()).isEqualTo(150);
+    }
+
+    @Test
+    void rejectsCorruptImage() throws Exception {
+        Cookie authCookie = obtainAuthCookie("mediauser5");
+        MockMultipartFile file = new MockMultipartFile("file", "bad.png", "image/png", "garbage".getBytes());
+
+        mockMvc.perform(multipart("/api/media").file(file).cookie(authCookie))
+                .andExpect(status().isBadRequest());
+    }
+}
