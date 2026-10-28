@@ -186,3 +186,4 @@ The following evaluation analyzes the monolithic architecture of Instakill acros
 2. **Caching Layer**: Introduce Redis for caching high-traffic feeds (`trending`, `new`) and session blacklist invalidation.
 3. **Asynchronous Event Broker**: Implement `DomainEventPublisher` using Apache Kafka or RabbitMQ to stream `LikeCreatedEvent` and `CommentCreatedEvent` for async analytics and notification processing.
 4. **Service Extraction**: Split into independent microservices (`Auth/User Service`, `Feed Service`, `Post Service`, `Interaction Service`) orchestrated behind a lightweight API Gateway (e.g. Spring Cloud Gateway).
+
